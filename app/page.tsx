@@ -1,65 +1,149 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useRef } from 'react';
+import ConfigSidebar from './components/ConfigSidebar';
+import ResultsDisplay from './components/ResultsDisplay';
+import SimulationLoading from './components/SimulationLoading';
+import { CacheConfig, SimulationResults } from '@/lib/types';
+import { CacheSimulator } from '@/lib/cache-simulator';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function Home() {
+  const [config, setConfig] = useState<CacheConfig>({
+    l1Size: 32,
+    l1Assoc: 4,
+    l2Size: 256,
+    l2Assoc: 8,
+    replacementPolicy: 'LRU',
+    writePolicy: 'write-back',
+    blockSize: 64,
+    numAccesses: 10000,
+  });
+
+  const [results, setResults] = useState<SimulationResults | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
+  const [traceLog, setTraceLog] = useState<any[]>([]);
+  const simulatorRef = useRef<CacheSimulator | null>(null);
+
+  const handleRunSimulation = () => {
+    setIsLoading(true);
+    setShowWelcome(false);
+    setResults(null);
+
+    // Run simulation after a short delay to show loading animation
+    setTimeout(() => {
+      const simulator = new CacheSimulator(config);
+      simulatorRef.current = simulator;
+      const simulationResults = simulator.simulate(config.numAccesses);
+
+      setResults(simulationResults);
+      setTraceLog(simulator.traceLog);
+      setIsLoading(false);
+    }, 500);
+  };
+
+  const handleReset = () => {
+    setConfig({
+      l1Size: 32,
+      l1Assoc: 4,
+      l2Size: 256,
+      l2Assoc: 8,
+      replacementPolicy: 'LRU',
+      writePolicy: 'write-back',
+      blockSize: 64,
+      numAccesses: 10000,
+    });
+    setResults(null);
+    setShowWelcome(true);
+    setTraceLog([]);
+    if (simulatorRef.current) {
+      simulatorRef.current.reset();
+    }
+  };
+
+  const handleExportPDF = async () => {
+    const resultsElement = document.getElementById('results');
+    if (!resultsElement) return;
+
+    try {
+      const canvas = await html2canvas(resultsElement, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pageHeight = 297; // A4 height in mm
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      const imgData = canvas.toDataURL('image/png');
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      const filename = `Cache_Simulator_Report_${config.l1Size}KB_${config.replacementPolicy}_${Date.now()}.pdf`;
+      pdf.save(filename);
+
+      alert('✅ PDF report generated successfully!\n\nFilename: ' + filename);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('❌ Error generating PDF. Please try again.');
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="app-container">
+      <header className="app-header">
+        <h1>🖥️ Cache Memory Simulator</h1>
+        <p>Design and Analysis of L1/L2 Cache Hierarchy</p>
+        <p className="subtitle">Computer Architecture and Organization Project</p>
+      </header>
+
+      <div className="main-content">
+        <ConfigSidebar
+          config={config}
+          onConfigChange={setConfig}
+          onRunSimulation={handleRunSimulation}
+          onReset={handleReset}
+          isLoading={isLoading}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+        <main className="results-area">
+          {isLoading && (
+            <SimulationLoading totalAccesses={config.numAccesses} />
+          )}
+
+          {!isLoading && showWelcome && (
+            <div className="welcome">
+              <h2>Welcome to Cache Simulator</h2>
+              <p>Configure your cache parameters and click &quot;Run Simulation&quot; to begin analysis.</p>
+              <div className="welcome-icon">🖥️</div>
+            </div>
+          )}
+
+          {!isLoading && results && (
+            <>
+              <ResultsDisplay results={results} config={config} traceLog={traceLog} />
+              <button className="export-btn" onClick={handleExportPDF}>
+                <span>📄</span> Export to PDF
+              </button>
+            </>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
