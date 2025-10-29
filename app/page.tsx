@@ -110,6 +110,7 @@ export default function Home() {
         <h1>🖥️ Cache Memory Simulator</h1>
         <p>Design and Analysis of L1/L2 Cache Hierarchy</p>
         <p className="subtitle">Computer Architecture and Organization Project</p>
+        <p className="group-name">💻 Cache Crushers</p>
       </header>
 
       <div className="main-content">
@@ -144,6 +145,35 @@ export default function Home() {
           )}
         </main>
       </div>
+
+      {/* Footer with team members */}
+      <footer className="app-footer">
+        <div className="footer-content">
+          <h3>👥 Cache Crushers Team</h3>
+          <div className="team-members">
+            <div className="team-member">
+              <span className="member-name">Safwan Rahimi bin Suhaili</span>
+              <span className="member-id">B24070037</span>
+            </div>
+            <div className="team-member">
+              <span className="member-name">Norul Azwa binti Hassan</span>
+              <span className="member-id">B24070014</span>
+            </div>
+            <div className="team-member">
+              <span className="member-name">Ahmad Fahmie Aizzat bin Abdul Majid</span>
+              <span className="member-id">B24080028</span>
+            </div>
+            <div className="team-member">
+              <span className="member-name">Norazila binti Said</span>
+              <span className="member-id">B24080009</span>
+            </div>
+          </div>
+          <div className="footer-info">
+            <p>BTE2054 - Computer Architecture and Organization</p>
+            <p>Lecturer: Ms. Noraini binti Ismail</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
